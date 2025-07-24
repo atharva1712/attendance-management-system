@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Smart Attendance System</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="dashboard-container">
+    <header class="dashboard-header">
+      <div class="header-content">
+        <h1>📊 Smart Attendance Dashboard</h1>
+        <div class="user-info">
+          <span id="userWelcome">Welcome!</span>
+          <button onclick="handleLogout()" class="btn-secondary">Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="dashboard-main">
+      <!-- Teacher Dashboard -->
+      <div id="teacherDashboard" class="dashboard-section hidden">
+        <!-- Mark Attendance Section -->
+        <div class="dashboard-card">
+          <h2>✏️ Mark Attendance</h2>
+          <p>Mark attendance for students in your subject</p>
+          
+          <form id="markAttendanceForm" class="attendance-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="studentSelect">Select Student:</label>
+                <select id="studentSelect" name="student_id" required>
+                  <option value="">Choose a student</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label for="attendanceDate">Date:</label>
+                <input type="date" id="attendanceDate" name="date" required>
+              </div>
+              
+              <div class="form-group">
+                <label for="attendanceStatus">Status:</label>
+                <select id="attendanceStatus" name="status" required>
+                  <option value="">Select status</option>
+                  <option value="present">✅ Present</option>
+                  <option value="absent">❌ Absent</option>
+                  <option value="late">⏰ Late</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="form-actions">
+              <button type="button" onclick="loadStudents()" class="btn-secondary">
+                🔄 Load Students
+              </button>
+              <button type="submit" class="btn-primary">
+                ✏️ Mark Attendance
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Attendance Summary Section -->
+        <div class="dashboard-card">
+          <h2>📊 Attendance Summary</h2>
+          <p>View attendance statistics for all students</p>
+          
+          <div class="action-buttons">
+            <button onclick="fetchAttendanceSummary()" class="btn-primary">
+              📈 Load Attendance Summary
+            </button>
+          </div>
+
+          <div id="loadingMessage" class="loading hidden">
+            <p>🔄 Loading attendance data...</p>
+          </div>
+
+          <div id="attendanceSection" class="attendance-section hidden">
+            <h3>📋 Attendance Summary</h3>
+            <div class="table-container">
+              <table id="attendanceTable">
+                <thead>
+                  <tr>
+                    <th>Student ID</th>
+                    <th>Student Name</th>
+                    <th>Present</th>
+                    <th>Absent</th>
+                    <th>Late</th>
+                    <th>Total Days</th>
+                    <th>Attendance %</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Student Dashboard -->
+      <div id="studentDashboard" class="dashboard-section hidden">
+        <div class="dashboard-card">
+          <h2>📚 Student Dashboard</h2>
+          <p>View your attendance records by subject and date</p>
+          
+          <!-- Attendance Filters -->
+          <div class="attendance-filters">
+            <h3>🔍 Filter Attendance</h3>
+            <div class="filter-row">
+              <div class="form-group">
+                <label for="subjectFilter">Subject:</label>
+                <select id="subjectFilter">
+                  <option value="">All Subjects</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label for="dateFromFilter">From Date:</label>
+                <input type="date" id="dateFromFilter">
+              </div>
+              
+              <div class="form-group">
+                <label for="dateToFilter">To Date:</label>
+                <input type="date" id="dateToFilter">
+              </div>
+            </div>
+            
+            <div class="filter-actions">
+              <button onclick="fetchStudentAttendance()" class="btn-primary">
+                📊 View My Attendance
+              </button>
+              <button onclick="clearFilters()" class="btn-secondary">
+                🔄 Clear Filters
+              </button>
+            </div>
+          </div>
+
+          <div id="studentAttendanceSection" class="attendance-section hidden">
+            <h3>📋 My Attendance Records</h3>
+            <div id="attendanceStats" class="attendance-stats hidden"></div>
+            <div class="table-container">
+              <table id="studentAttendanceTable">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Subject</th>
+                    <th>Teacher</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="message" class="message"></div>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+  <script>
+    // Initialize dashboard
+    document.addEventListener('DOMContentLoaded', function() {
+      initializeDashboard();
+    });
+  </script>
+</body>
+</html>

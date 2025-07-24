@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - Smart Attendance System</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="auth-container">
+    <div class="auth-card">
+      <h1>📝 Register</h1>
+      <p class="subtitle">Create your account</p>
+      
+      <form id="registerForm">
+        <div class="form-group">
+          <label for="role">Select Role:</label>
+          <select id="role" name="role" required onchange="toggleRoleFields()">
+            <option value="">Choose your role</option>
+            <option value="teacher">👨‍🏫 Teacher</option>
+            <option value="student">📚 Student</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="name">Full Name:</label>
+          <input type="text" id="name" name="name" placeholder="Enter your full name" required>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email:</label>
+          <input type="email" id="email" name="email" placeholder="Enter your email" required>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password:</label>
+          <input type="password" id="password" name="password" placeholder="Enter your password" required>
+        </div>
+
+        <!-- Teacher-specific fields -->
+        <div id="teacherFields" class="role-fields hidden">
+          <div class="form-group">
+            <label for="subject">Subject:</label>
+            <input type="text" id="subject" name="subject" placeholder="Enter subject you teach">
+          </div>
+        </div>
+
+        <!-- Student-specific fields -->
+        <div id="studentFields" class="role-fields hidden">
+          <div class="form-group">
+            <label for="branch">Branch:</label>
+            <input type="text" id="branch" name="branch" placeholder="Enter your branch (e.g., Computer Science)">
+          </div>
+          <div class="form-group">
+            <label for="year">Year:</label>
+            <select id="year" name="year">
+              <option value="">Select year</option>
+              <option value="1">1st Year</option>
+              <option value="2">2nd Year</option>
+              <option value="3">3rd Year</option>
+              <option value="4">4th Year</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary">Register</button>
+      </form>
+
+      <div id="message" class="message"></div>
+
+      <div class="auth-footer">
+        <p>Already have an account? <a href="login.html">Login here</a></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+  <script>
+    // Initialize register page
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check if user is already logged in
+      const token = localStorage.getItem('token');
+      if (token) {
+        window.location.href = 'dashboard.html';
+      }
+
+      // Handle register form submission
+      document.getElementById('registerForm').addEventListener('submit', handleRegister);
+    });
+
+    // Toggle role-specific fields
+    function toggleRoleFields() {
+      const role = document.getElementById('role').value;
+      const teacherFields = document.getElementById('teacherFields');
+      const studentFields = document.getElementById('studentFields');
+      
+      // Hide all role fields first
+      teacherFields.classList.add('hidden');
+      studentFields.classList.add('hidden');
+      
+      // Show relevant fields based on role
+      if (role === 'teacher') {
+        teacherFields.classList.remove('hidden');
+        document.getElementById('subject').required = true;
+        document.getElementById('branch').required = false;
+        document.getElementById('year').required = false;
+      } else if (role === 'student') {
+        studentFields.classList.remove('hidden');
+        document.getElementById('subject').required = false;
+        document.getElementById('branch').required = true;
+        document.getElementById('year').required = true;
+      }
+    }
+  </script>
+</body>
+</html>

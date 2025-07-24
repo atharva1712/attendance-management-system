@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Attendance Summary</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>📊 Attendance Summary</h1>
+
+    <label for="token">Enter JWT Token:</label>
+    <input type="text" id="token" placeholder="Paste your teacher token here" />
+    <button onclick="fetchSummary()">Get Summary</button>
+
+    <div id="message"></div>
+    <table id="summary-table" class="hidden">
+      <thead>
+        <tr>
+          <th>Student ID</th>
+          <th>Name</th>
+          <th>Present</th>
+          <th>Absent</th>
+          <th>Late</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
