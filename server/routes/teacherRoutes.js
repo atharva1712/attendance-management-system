@@ -201,7 +201,7 @@ router.get('/attendance-records', authenticateTeacher, async (req, res) => {
         a.id,
         a.date,
         a.status,
-        a.created_at,
+        COALESCE(a.created_at, a.date::timestamp) as created_at,
         s.id as student_id,
         s.name as student_name
       FROM attendance a

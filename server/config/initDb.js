@@ -51,6 +51,9 @@ const createTables = async () => {
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='attendance' AND column_name='subject') THEN
           ALTER TABLE attendance ADD COLUMN subject VARCHAR(100);
         END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='attendance' AND column_name='created_at') THEN
+          ALTER TABLE attendance ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+        END IF;
       END
       $$;
     `);

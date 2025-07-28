@@ -173,7 +173,7 @@ function initializeDashboard() {
 
   // Update welcome message
   const welcomeElement = document.getElementById('userWelcome');
-  if (userRole === 'teacher') {
+  if (role === 'teacher') {
     const teacherDashboard = document.getElementById('teacherDashboard');
     teacherDashboard.classList.remove('hidden');
     welcomeElement.textContent = `Welcome, ${userData.name}! (${userData.subject})`;
@@ -181,27 +181,23 @@ function initializeDashboard() {
     // Auto-load students when teacher dashboard loads
     loadStudents();
     loadStudentsForFilter();
-  } else if (userRole === 'student') {
+  } else if (role === 'student') {
     const studentDashboard = document.getElementById('studentDashboard');
     studentDashboard.classList.remove('hidden');
     welcomeElement.textContent = `Welcome, ${userData.name}!`;
   }
 
+  // Set today's date as default for attendance form
   const today = new Date().toISOString().split('T')[0];
   const dateInput = document.getElementById('attendanceDate');
   if (dateInput) {
     dateInput.value = today;
   }
-  // Set up form submission handler
+  
+  // Set up form submission handler for attendance marking
   const markAttendanceForm = document.getElementById('markAttendanceForm');
   if (markAttendanceForm) {
     markAttendanceForm.addEventListener('submit', handleMarkAttendance);
-    const markAttendanceForm = document.getElementById('markAttendanceForm');
-    if (markAttendanceForm) {
-      markAttendanceForm.addEventListener('submit', handleMarkAttendance);
-    }
-  } else {
-    document.getElementById('studentDashboard').classList.remove('hidden');
   }
 }
 
@@ -237,16 +233,23 @@ async function fetchAttendanceSummary() {
       
       if (data.summary && data.summary.length > 0) {
         data.summary.forEach((record) => {
-          const totalDays = record.present + record.absent + record.late;
-          const attendancePercentage = totalDays > 0 ? ((record.present / totalDays) * 100).toFixed(1) : '0.0';
+          // Convert string counts to numbers
+          const presentCount = parseInt(record.present_count) || 0;
+          const absentCount = parseInt(record.absent_count) || 0;
+          const lateCount = parseInt(record.late_count) || 0;
+          const totalDays = parseInt(record.total_days) || 0;
+          
+          // Use the attendance percentage from backend or calculate it
+          const attendancePercentage = record.attendance_percentage || 
+            (totalDays > 0 ? ((presentCount / totalDays) * 100).toFixed(1) : '0.0');
           
           const row = document.createElement('tr');
           row.innerHTML = `
             <td>${record.student_id}</td>
-            <td>${record.name}</td>
-            <td class="text-center">${record.present}</td>
-            <td class="text-center">${record.absent}</td>
-            <td class="text-center">${record.late}</td>
+            <td>${record.student_name}</td>
+            <td class="text-center">${presentCount}</td>
+            <td class="text-center">${absentCount}</td>
+            <td class="text-center">${lateCount}</td>
             <td class="text-center">${totalDays}</td>
             <td class="text-center">${attendancePercentage}%</td>
           `;
