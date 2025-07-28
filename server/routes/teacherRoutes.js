@@ -144,39 +144,125 @@ router.get('/students', authenticateTeacher, async (req, res) => {
 // GET /api/teachers/attendance-summary - Get attendance summary for all students (protected)
 router.get('/attendance-summary', authenticateTeacher, async (req, res) => {
   try {
-    // Query to get attendance summary for all students
-    const query = `
+    const teacherId = req.teacher.id;
+
+    const result = await pool.query(`
       SELECT 
         s.id as student_id,
-        s.name,
-        COUNT(CASE WHEN a.status = 'present' THEN 1 END) as present,
-        COUNT(CASE WHEN a.status = 'absent' THEN 1 END) as absent,
-        COUNT(CASE WHEN a.status = 'late' THEN 1 END) as late
+        s.name as student_name,
+        COUNT(CASE WHEN a.status = 'present' THEN 1 END) as present_count,
+        COUNT(CASE WHEN a.status = 'absent' THEN 1 END) as absent_count,
+        COUNT(CASE WHEN a.status = 'late' THEN 1 END) as late_count,
+        COUNT(a.id) as total_days
       FROM students s
       LEFT JOIN attendance a ON s.id = a.student_id
       GROUP BY s.id, s.name
       ORDER BY s.name
-    `;
+    `);
 
-    const result = await pool.query(query);
-
-    // Convert counts from strings to numbers
-    const summary = result.rows.map(row => ({
-      student_id: row.student_id,
-      name: row.name,
-      present: parseInt(row.present) || 0,
-      absent: parseInt(row.absent) || 0,
-      late: parseInt(row.late) || 0
-    }));
+    // Calculate attendance percentage for each student
+    const attendanceData = result.rows.map(row => {
+      const attendancePercentage = row.total_days > 0 
+        ? ((row.present_count / row.total_days) * 100).toFixed(1)
+        : '0.0';
+      
+      return {
+        ...row,
+        attendance_percentage: attendancePercentage
+      };
+    });
 
     res.json({
       message: 'Attendance summary retrieved successfully',
-      summary: summary
+      teacher: {
+        id: req.teacher.id,
+        name: req.teacher.name,
+        subject: req.teacher.subject
+      },
+      summary: attendanceData
     });
 
   } catch (error) {
     console.error('Get attendance summary error:', error);
-    res.status(500).json({ error: 'Failed to fetch attendance summary' });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/teachers/attendance-records - Get detailed attendance records with date filtering (protected)
+router.get('/attendance-records', authenticateTeacher, async (req, res) => {
+  try {
+    const teacherId = req.teacher.id;
+    const teacherSubject = req.teacher.subject;
+    const { date_from, date_to, student_id } = req.query;
+
+    // Build dynamic query based on filters
+    let query = `
+      SELECT 
+        a.id,
+        a.date,
+        a.status,
+        a.created_at,
+        s.id as student_id,
+        s.name as student_name
+      FROM attendance a
+      JOIN students s ON a.student_id = s.id
+      WHERE a.teacher_id = $1 AND a.subject = $2
+    `;
+    
+    const queryParams = [teacherId, teacherSubject];
+    let paramCount = 2;
+
+    // Add student filter if provided
+    if (student_id) {
+      paramCount++;
+      query += ` AND a.student_id = $${paramCount}`;
+      queryParams.push(student_id);
+    }
+
+    // Add date range filters if provided
+    if (date_from) {
+      paramCount++;
+      query += ` AND a.date >= $${paramCount}`;
+      queryParams.push(date_from);
+    }
+
+    if (date_to) {
+      paramCount++;
+      query += ` AND a.date <= $${paramCount}`;
+      queryParams.push(date_to);
+    }
+
+    query += ' ORDER BY a.date DESC, s.name';
+
+    const result = await pool.query(query, queryParams);
+
+    // Calculate statistics for the filtered records
+    const stats = {
+      total: result.rows.length,
+      present: result.rows.filter(r => r.status === 'present').length,
+      absent: result.rows.filter(r => r.status === 'absent').length,
+      late: result.rows.filter(r => r.status === 'late').length
+    };
+
+    res.json({
+      message: 'Attendance records retrieved successfully',
+      teacher: {
+        id: req.teacher.id,
+        name: req.teacher.name,
+        subject: req.teacher.subject
+      },
+      filters: {
+        date_from: date_from || null,
+        date_to: date_to || null,
+        student_id: student_id || null
+      },
+      statistics: stats,
+      records: result.rows
+    });
+
+  } catch (error) {
+    console.error('Get teacher attendance records error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

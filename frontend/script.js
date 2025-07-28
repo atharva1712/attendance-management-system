@@ -173,20 +173,29 @@ function initializeDashboard() {
 
   // Update welcome message
   const welcomeElement = document.getElementById('userWelcome');
-  if (welcomeElement) {
-    welcomeElement.textContent = `Welcome, ${userData.name}! (${role.charAt(0).toUpperCase() + role.slice(1)})`;
+  if (userRole === 'teacher') {
+    const teacherDashboard = document.getElementById('teacherDashboard');
+    teacherDashboard.classList.remove('hidden');
+    welcomeElement.textContent = `Welcome, ${userData.name}! (${userData.subject})`;
+    
+    // Auto-load students when teacher dashboard loads
+    loadStudents();
+    loadStudentsForFilter();
+  } else if (userRole === 'student') {
+    const studentDashboard = document.getElementById('studentDashboard');
+    studentDashboard.classList.remove('hidden');
+    welcomeElement.textContent = `Welcome, ${userData.name}!`;
   }
 
-  // Show appropriate dashboard
-  if (role === 'teacher') {
-    document.getElementById('teacherDashboard').classList.remove('hidden');
-    // Set today's date as default
-    const today = new Date().toISOString().split('T')[0];
-    const dateInput = document.getElementById('attendanceDate');
-    if (dateInput) {
-      dateInput.value = today;
-    }
-    // Set up form submission handler
+  const today = new Date().toISOString().split('T')[0];
+  const dateInput = document.getElementById('attendanceDate');
+  if (dateInput) {
+    dateInput.value = today;
+  }
+  // Set up form submission handler
+  const markAttendanceForm = document.getElementById('markAttendanceForm');
+  if (markAttendanceForm) {
+    markAttendanceForm.addEventListener('submit', handleMarkAttendance);
     const markAttendanceForm = document.getElementById('markAttendanceForm');
     if (markAttendanceForm) {
       markAttendanceForm.addEventListener('submit', handleMarkAttendance);
@@ -394,6 +403,165 @@ function clearFilters() {
   
   hideMessage();
   showMessage('✅ Filters cleared successfully!', 'success');
+}
+
+// Teacher Attendance Records Functions
+async function fetchTeacherAttendanceRecords() {
+  const token = getStoredToken();
+  const recordsSection = document.getElementById('teacherAttendanceRecordsSection');
+  const tableBody = document.querySelector('#teacherAttendanceRecordsTable tbody');
+  const statsDiv = document.getElementById('teacherAttendanceStats');
+  const studentFilter = document.getElementById('teacherStudentFilter');
+
+  if (!token) {
+    showMessage('❌ No authentication token found', 'error');
+    return;
+  }
+
+  hideMessage();
+  recordsSection.classList.add('hidden');
+  statsDiv.classList.add('hidden');
+  tableBody.innerHTML = '';
+
+  try {
+    // Build query parameters for filtering
+    const params = new URLSearchParams();
+    
+    const dateFrom = document.getElementById('teacherDateFromFilter').value;
+    const dateTo = document.getElementById('teacherDateToFilter').value;
+    const studentId = document.getElementById('teacherStudentFilter').value;
+    
+    if (dateFrom) params.append('date_from', dateFrom);
+    if (dateTo) params.append('date_to', dateTo);
+    if (studentId) params.append('student_id', studentId);
+
+    const queryString = params.toString();
+    const url = `${API_BASE_URL}/api/teachers/attendance-records${queryString ? '?' + queryString : ''}`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      recordsSection.classList.remove('hidden');
+      
+      if (data.records && data.records.length > 0) {
+        // Display statistics
+        if (data.statistics) {
+          const stats = data.statistics;
+          const attendancePercentage = stats.total > 0 ? ((stats.present / stats.total) * 100).toFixed(1) : '0.0';
+          
+          statsDiv.innerHTML = `
+            <div class="stat-item">
+              <span class="stat-number">${stats.total}</span>
+              <span class="stat-label">Total Records</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">${stats.present}</span>
+              <span class="stat-label">Present</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">${stats.absent}</span>
+              <span class="stat-label">Absent</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">${stats.late}</span>
+              <span class="stat-label">Late</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">${attendancePercentage}%</span>
+              <span class="stat-label">Attendance Rate</span>
+            </div>
+          `;
+          statsDiv.classList.remove('hidden');
+        }
+
+        // Populate table with attendance records
+        data.records.forEach((record) => {
+          const row = document.createElement('tr');
+          const statusClass = record.status === 'present' ? 'success' : record.status === 'late' ? 'warning' : 'error';
+          
+          row.innerHTML = `
+            <td>${new Date(record.date).toLocaleDateString()}</td>
+            <td>${record.student_name}</td>
+            <td class="text-center"><span class="status ${statusClass}">${record.status.charAt(0).toUpperCase() + record.status.slice(1)}</span></td>
+            <td>${new Date(record.created_at).toLocaleString()}</td>
+          `;
+          tableBody.appendChild(row);
+        });
+        
+        const filterInfo = [];
+        if (dateFrom) filterInfo.push(`From: ${dateFrom}`);
+        if (dateTo) filterInfo.push(`To: ${dateTo}`);
+        if (studentId) {
+          const selectedStudent = studentFilter.options[studentFilter.selectedIndex].text;
+          if (selectedStudent !== 'All Students') filterInfo.push(`Student: ${selectedStudent}`);
+        }
+        
+        const filterText = filterInfo.length > 0 ? ` (${filterInfo.join(', ')})` : '';
+        showMessage(`✅ ${data.records.length} attendance records loaded successfully!${filterText}`, 'success');
+      } else {
+        showMessage('ℹ️ No attendance records found for the selected filters', 'info');
+      }
+    } else {
+      showMessage(`❌ ${data.error || 'Failed to fetch attendance records'}`, 'error');
+    }
+  } catch (error) {
+    console.error('Fetch teacher attendance records error:', error);
+    showMessage('❌ Could not connect to server', 'error');
+  }
+}
+
+// Clear teacher filters function
+function clearTeacherFilters() {
+  document.getElementById('teacherDateFromFilter').value = '';
+  document.getElementById('teacherDateToFilter').value = '';
+  document.getElementById('teacherStudentFilter').value = '';
+  
+  // Hide attendance section and stats
+  document.getElementById('teacherAttendanceRecordsSection').classList.add('hidden');
+  document.getElementById('teacherAttendanceStats').classList.add('hidden');
+  
+  hideMessage();
+  showMessage('✅ Teacher filters cleared successfully!', 'success');
+}
+
+// Load students for teacher filter dropdown
+async function loadStudentsForFilter() {
+  const token = getStoredToken();
+  const studentFilter = document.getElementById('teacherStudentFilter');
+
+  if (!token) return;
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/teachers/students`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.students) {
+      // Clear existing options except the first one
+      studentFilter.innerHTML = '<option value="">All Students</option>';
+      
+      data.students.forEach(student => {
+        const option = document.createElement('option');
+        option.value = student.id;
+        option.textContent = student.name;
+        studentFilter.appendChild(option);
+      });
+    }
+  } catch (error) {
+    console.error('Load students for filter error:', error);
+  }
 }
 
 // Attendance Marking Functions
